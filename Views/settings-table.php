@@ -9,7 +9,7 @@ function getValue($arr, $key = "", $subkey = "") {
         // return value within a [group]
         if(isset($arr[$key])) {
             if(isset($arr[$key][$subkey])) {
-                if( is_iterable($arr[$key][$subkey]) ) {
+                if(is_iterable($arr[$key][$subkey])) {
                     // show array as a list of key=value pairs
                     return rawurldecode(http_build_query($arr[$key][$subkey]));
                 } else {
@@ -50,8 +50,6 @@ function buildRow($arrays, $key, $_value) {
 
 $rows = '';
 foreach ($arrays['_default'] as $section_name=>$section_values):
-    // var_dump($arrays['_settings'][$section_name]);
-    // exit(PHP_EOL.__FILE__.__LINE__);
     // show settings not in a [section]
     if(!is_iterable($section_values)) {
         $rows .= sprintf('
@@ -83,17 +81,17 @@ output the above table rows as one table to keep the column alignment
 */
 ?>
 
-<h2>Settings:</h2>
+<h2>EmonCMS Settings:</h2>
 <p class="lead">The last column is the combined values of the 3 different sources.</p>
 <p>Values in <code>default.ini</code> are overwritten by values in <code>settings.ini</code> and the <code>ENV</code> vars overwrite them all if set. </p>
-<table class="table table-bordered">
+<table class="table table-bordered table-condensed table-hover">
     <thead>
         <tr>
             <th></th>
             <th>default.ini</th>
             <th>settings.ini</th>
             <th>ENV</th>
-            <th></th>
+            <th>COMBINED</th>
         </tr>
     </thead>
     <tbody>
