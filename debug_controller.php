@@ -49,7 +49,7 @@ function debug_controller()
         $SETTINGS_INI = parse_ini_file("settings.ini", true);
         $ALL_ENV_INI = parse_ini_file("settings.env.ini", true);
         $ENV_FOUND = ini_check_envvars($ALL_ENV_INI);
-
+        
         $arrays = array(
             '_default' => $DEFAULT_INI,
             '_settings' => $SETTINGS_INI,
@@ -91,5 +91,61 @@ function debug_controller()
         }
 
         return array('content'=>$result,'message'=>$message);
+    }
+}
+
+if(!is_callable('ini_check_envvars')) {
+    // This function iterates over all the config file entries, replacing values
+    // of the format {{VAR_NAME}} with the environment variable 'VAR_NAME'.
+    //
+    // This can be useful in containerised setups, or testing environments.
+    // if {{VAR_NAME}} found in .ini file but not an ENV variable it is removed.
+    function ini_check_envvars($config) {
+        global $error_out;
+
+        foreach ($config as $section => $options) {
+            if(is_array($options)) {
+                foreach ($options as $key => $value) {
+                    // Find {{ }} vars and replace what's within them with the
+                    // named environment var
+                    if(is_array($value)) {
+                        foreach($value as $subKey => $subValue) {
+                            // loop through INI $value that is an array. currently not supported
+                            //@todo: add array_walk_recursive() style loop but keeping the $section value
+                        }
+                    } elseif (strpos($value, '{{') !== false && strpos($value, '}}') !== false) {
+                        preg_match_all( '/{{([^}]*)}}/', $value, $matches);
+                        foreach ($matches[1] as $match) {
+                            if (!isset($_ENV[$match])) {
+                                $error_out .= "<p>Error: environment var '${match}' not defined in config section [${section}], setting '${key}'</p>";
+                                // no match found remove ENV var overide field
+                                if (isset($config[$section][$key])) {
+                                    unset($config[$section][$key]);
+                                }
+                            } else {
+                                if (is_bool($_ENV[$match])) {
+                                    $_ENV[$match] = $_ENV[$match] ? 'true' : 'false';
+                                }
+                                $newval = str_replace('{{'.$match.'}}', $_ENV[$match], $value);
+                                // Convert booleans from strings
+                                if ($newval === 'true') {
+                                    $newval = true;
+                                } else if ($newval === 'false') {
+                                    $newval = false;
+
+                                    // Convert numbers from strings
+                                } else if (is_numeric($newval)) {
+                                    $newval = $newval + 0;
+                                }
+                                
+                                // Set the new value
+                                $config[$section][$key] = $newval;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return array_filter($config);
     }
 }
